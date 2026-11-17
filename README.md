@@ -123,49 +123,244 @@ This project serves as the foundation for developing an autonomous agricultural 
 - Embedded hardware integration.
 - Real-world robotic platform development.
 **8> commands**
-0.LIBGL_ALWAYS_SOFTWARE=1 QT_QPA_PLATFORM=xcb ign gazebo -r src/my_robot/worlds/lidar_world.sdf --- to start the gazebo
-1.ros2 run robot_state_publisher robot_state_publisher src/my_robot/urdf/robot.urdf   ----for publishing the tf data on /tf and /tf_static 
-2.ros2 run ros_gz_sim create -topic /robot_description -name my_robot --to spawned the robot in the gazebo
-3.ros2 run ros_gz_bridge parameter_bridge '/world/empty/model/my_robot/joint_state@sensor_msgs/msg/JointState[ignition.msgs.Model' --ros-args -r /world/empty/model/my_robot/joint_state:=/joint_states 
-(ros2 run ros_gz_bridge parameter_bridge '/world/lidar_world/model/my_robot/joint_state@sensor_msgs/msg/JointState[ignition.msgs.Model' --ros-args -r /world/lidar_world/model/my_robot/joint_state:=/joint_states)
+# ============================================================
+# ROS 2 HUMBLE + GAZEBO IGNITION COMMAND REFERENCE
+# Workspace: ~/robotics_ws
+# Robot Package: my_robot
+# World: lidar_world
+# ============================================================
 
 
-4.ros2 run ros_gz_bridge parameter_bridge '/model/my_robot/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist'
-5.ros2 run ros_gz_bridge parameter_bridge   '/model/my_robot/odometrys@nav_msgs/msg/Odometry[ignition.msgs.Odometry' 
-6.ign topic -e -t /model/my_robot/odometrys ^C
-7.ros2 run my_robot odom_tf_broadcaster
-8.ros2 run tf2_ros tf2_echo odom base_link
-9. ros2 run ros_gz_bridge parameter_bridge \
-  '/scan@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan'
-[INFO] [1792928289.743263851] [ros_gz_bridge]: Creating GZ->ROS Bridge: [/scan (ignition.msgs.LaserScan) -> /scan (sensor_msgs/msg/LaserScan)] (Lazy 0)
+# ============================================================
+# 1. ENVIRONMENT SETUP
+# ============================================================
 
-10.top
-11.ros2 topic echo /joint_states
-12.ros2 run ros_gz_bridge parameter_bridge   '/model/my_robot/odometrys@nav_msgs/msg/Odometry[ignition.msgs.Odometry' 
-13.ign service -s /world/lidar_world/control   --reqtype ignition.msgs.WorldControl   --reptype ignition.msgs.Boolean   --timeout 1000   --req 'pause: false'  -----command to pause the gazebo simulation.
-14.ros2 run ros_gz_bridge parameter_bridge '/imu@sensor_msgs/msg/Imu[ignition.msgs.IMU'    -----IMU bridge
-15.ros2 topic pub --rate 10 /model/my_robot/cmd_vel geometry_msgs/msg/Twist "{linear: {x: -10.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}"
-16.ign topic -l     ----- to check all gazebo topics 
-17.Connect Depth Camera to ROS 2
-Open another terminal:
-ros2 run ros_gz_bridge parameter_bridge '/camera/depth/image_raw@sensor_msgs/msg/Image[ignition.msgs.Image'
-
-18.ros2 run ros_gz_bridge parameter_bridge '/camera/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo' -----Bridge the  CameraInfo topic
-If Gazebo publishes /camera/camera_info for the depth camera, we can bridge it using:
-19.Step 1: Bridge Depth CameraInfo to ROS 2
-Run this in a new terminal: ros2 run ros_gz_bridge parameter_bridge '/camera/depth/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo'
-
-20, Step 3: Bridge the point cloud to ROS 2
-If the message type is ignition.msgs.PointCloudPacked
-
-  source /opt/ros/humble/setup.bash
+source /opt/ros/humble/setup.bash
 source ~/robotics_ws/install/setup.bash
 
+echo $ROS_DISTRO
+
+
+# ============================================================
+# 2. START GAZEBO
+# ============================================================
+
+LIBGL_ALWAYS_SOFTWARE=1 QT_QPA_PLATFORM=xcb ign gazebo -r src/my_robot/worlds/lidar_world.sdf
+
+
+# ============================================================
+# 3. ROBOT STATE PUBLISHER
+# Publishes robot transforms using URDF and joint states
+# ============================================================
+
+ros2 run robot_state_publisher robot_state_publisher src/my_robot/urdf/robot.urdf
+
+
+# ============================================================
+# 4. SPAWN ROBOT IN GAZEBO
+# ============================================================
+
+ros2 run ros_gz_sim create -topic /robot_description -name my_robot
+
+
+# ============================================================
+# 5. BRIDGE JOINT STATES: GAZEBO -> ROS 2
+# ============================================================
+
+ros2 run ros_gz_bridge parameter_bridge '/world/lidar_world/model/my_robot/joint_state@sensor_msgs/msg/JointState[ignition.msgs.Model' --ros-args -r /world/lidar_world/model/my_robot/joint_state:=/joint_states
+
+
+# ============================================================
+# 6. BRIDGE CMD_VEL: ROS 2 -> GAZEBO
+# ============================================================
+
+ros2 run ros_gz_bridge parameter_bridge '/model/my_robot/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist'
+
+
+# ============================================================
+# 7. ROBOT MOVEMENT COMMANDS
+# ============================================================
+
+# Forward
+ros2 topic pub --rate 10 /model/my_robot/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.2}, angular: {z: 0.0}}"
+
+# Backward
+ros2 topic pub --rate 10 /model/my_robot/cmd_vel geometry_msgs/msg/Twist "{linear: {x: -0.2}, angular: {z: 0.0}}"
+
+# Rotate
+ros2 topic pub --rate 10 /model/my_robot/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.0}, angular: {z: 0.2}}"
+
+# Stop
+ros2 topic pub --once /model/my_robot/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.0}, angular: {z: 0.0}}"
+
+
+# ============================================================
+# 8. BRIDGE ODOMETRY: GAZEBO -> ROS 2
+# ============================================================
+
+ros2 run ros_gz_bridge parameter_bridge '/model/my_robot/odometrys@nav_msgs/msg/Odometry[ignition.msgs.Odometry'
+
+# Inspect Gazebo odometry
+ign topic -e -t /model/my_robot/odometrys
+
+
+# ============================================================
+# 9. CUSTOM ODOMETRY TF BROADCASTER
+# ============================================================
+
+ros2 run my_robot odom_tf_broadcaster
+
+# Check odom -> base_link transformation
+ros2 run tf2_ros tf2_echo odom base_link
+
+
+# ============================================================
+# 10. LIDAR BRIDGE
+# GAZEBO -> ROS 2
+# ============================================================
+
+ros2 run ros_gz_bridge parameter_bridge '/scan@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan'
+
+# Read LiDAR data
+ros2 topic echo /scan
+
+
+# ============================================================
+# 11. IMU BRIDGE
+# GAZEBO -> ROS 2
+# ============================================================
+
+ros2 run ros_gz_bridge parameter_bridge '/imu@sensor_msgs/msg/Imu[ignition.msgs.IMU'
+
+# Inspect IMU information
+ros2 topic info /imu
+
+# Read one IMU message
+ros2 topic echo /imu --once
+
+
+# ============================================================
+# 12. DEPTH CAMERA BRIDGE
+# ============================================================
+
+# Depth image
+ros2 run ros_gz_bridge parameter_bridge '/camera/depth/image_raw@sensor_msgs/msg/Image[ignition.msgs.Image'
+
+# Camera information
+ros2 run ros_gz_bridge parameter_bridge '/camera/depth/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo'
+
+# Alternative camera information topic
+ros2 run ros_gz_bridge parameter_bridge '/camera/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo'
+
+# Point cloud
 ros2 run ros_gz_bridge parameter_bridge '/camera/depth/image_raw/points@sensor_msgs/msg/PointCloud2[ignition.msgs.PointCloudPacked'
 
-                                      ros2 topic list
-                                     ros2 topic info /imu
-                                    ros2 topic echo /imu --once
+
+# ============================================================
+# 13. GAZEBO DEBUGGING
+# ============================================================
+
+# List Gazebo topics
+ign topic -l
+
+# Echo Gazebo odometry
+ign topic -e -t /model/my_robot/odometrys
+
+
+# ============================================================
+# 14. ROS 2 TOPIC DEBUGGING
+# ============================================================
+
+# List topics
+ros2 topic list
+
+# Inspect topic
+ros2 topic info /imu
+
+# Read joint states
+ros2 topic echo /joint_states
+
+# Read LiDAR
+ros2 topic echo /scan
+
+# Read one IMU message
+ros2 topic echo /imu --once
+
+# List active nodes
+ros2 node list
+
+
+# ============================================================
+# 15. ROS 2 SERVICES AND ACTIONS
+# ============================================================
+
+# List services
+ros2 service list
+
+# List actions
+ros2 action list
+
+# List installed packages
+ros2 pkg list
+
+# Find package location
+ros2 pkg prefix my_robot
+
+# List package executables
+ros2 pkg executables my_robot
+
+
+# ============================================================
+# 16. PAUSE GAZEBO SIMULATION
+# ============================================================
+
+ign service -s /world/lidar_world/control \
+--reqtype ignition.msgs.WorldControl \
+--reptype ignition.msgs.Boolean \
+--timeout 1000 \
+--req 'pause: true'
+
+
+# ============================================================
+# 17. RESUME GAZEBO SIMULATION
+# ============================================================
+
+ign service -s /world/lidar_world/control \
+--reqtype ignition.msgs.WorldControl \
+--reptype ignition.msgs.Boolean \
+--timeout 1000 \
+--req 'pause: false'
+
+
+# ============================================================
+# 18. SYSTEM PERFORMANCE MONITORING
+# ============================================================
+
+top
+
+
+# ============================================================
+# 19. BUILD ROS 2 WORKSPACE
+# ============================================================
+
+cd ~/robotics_ws
+colcon build --symlink-install
+
+source install/setup.bash
+
+
+# ============================================================
+# 20. ROS 2 ENVIRONMENT CHECK
+# ============================================================
+
+echo $ROS_DISTRO
+
+printenv | grep ROS
+
+
+# ============================================================
+# END OF COMMAND REFERENCE
+# ============================================================
 
 ## 8. Developer
  Balaji 

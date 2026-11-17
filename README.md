@@ -100,9 +100,9 @@ ROS2-Robotics-Project/
 | Odometry | Implemented |
 | TF integration | Implemented |
 | ROS 2–Gazebo bridge | Implemented |
-| LiDAR integration | In development |
-| IMU integration | In development |
-| Camera integration | In development |
+| LiDAR integration | Implemented |
+| IMU integration | Implemented |
+| Camera integration | Implemented |
 | SLAM | Planned |
 | Autonomous navigation using Nav2 | Planned |
 

@@ -1,0 +1,4 @@
+robot_node:
+  ros__parameters:
+    robot_name: "warehouse_robot"
+    max_speed: 2.0
